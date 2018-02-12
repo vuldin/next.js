@@ -3,16 +3,18 @@ import { Provider } from 'mobx-react'
 import { initStore } from '../store'
 import Page from '../components/Page'
 
-export default class Counter extends React.Component {
-  static getInitialProps ({ req }) {
+export default class Index extends React.Component {
+  static getInitialProps ({ req, pathname }) {
     const isServer = !!req
-    const store = initStore(isServer)
-    return { lastUpdate: store.lastUpdate, isServer }
+    const state = initStore()
+    state.origin = pathname
+    return { isServer, state }
   }
 
   constructor (props) {
     super(props)
-    this.store = initStore(props.isServer, props.lastUpdate)
+    if (props.isServer) this.store = initStore(props.state)
+    else this.store = props.state
   }
 
   render () {

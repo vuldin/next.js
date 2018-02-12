@@ -1,13 +1,31 @@
-import { action, observable } from 'mobx'
+import { action, observable, intercept } from 'mobx'
 
 let store = null
 
-class Store {
-  @observable lastUpdate = 0
-  @observable light = false
+export default class Store {
+  @observable lastUpdate
+  @observable light
+  @observable origin
 
-  constructor (isServer, lastUpdate) {
-    this.lastUpdate = lastUpdate
+  constructor (state) {
+    // initialize property values
+    this.lastUpdate = state.lastUpdate || Date.now()
+    this.light = state.light || false
+    this.origin = state.origin || 'none'
+    this.prevOrigin = state.prevOrigin
+
+    store = this
+
+    // changes origin if new value != previous value
+    intercept(this, 'origin', change => {
+      let result = null
+      if (this.origin !== change.newValue) {
+        console.log(`origin: ${this.origin} => ${change.newValue}`)
+        this.prevOrigin = this.origin
+        result = change
+      }
+      return result
+    })
   }
 
   @action start = () => {
@@ -20,13 +38,7 @@ class Store {
   stop = () => clearInterval(this.timer)
 }
 
-export function initStore (isServer, lastUpdate = Date.now()) {
-  if (isServer) {
-    return new Store(isServer, lastUpdate)
-  } else {
-    if (store === null) {
-      store = new Store(isServer, lastUpdate)
-    }
-    return store
-  }
+export function initStore (state = {}) {
+  if (store === null) store = new Store(state)
+  return store
 }

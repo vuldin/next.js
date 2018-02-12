@@ -17,6 +17,7 @@ class Page extends React.Component {
     return (
       <div>
         <h1>{this.props.title}</h1>
+        <div>from {this.props.store.prevOrigin}</div>
         <Clock lastUpdate={this.props.store.lastUpdate} light={this.props.store.light} />
         <nav>
           <Link href={this.props.linkTo}><a>Navigate</a></Link>
