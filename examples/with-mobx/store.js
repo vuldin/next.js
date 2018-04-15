@@ -1,4 +1,6 @@
-import { action, observable, intercept } from 'mobx'
+import { configure, action, observable, intercept } from 'mobx'
+
+configure({ enforceActions: true })
 
 let store = null
 
@@ -6,12 +8,15 @@ export default class Store {
   @observable lastUpdate
   @observable light
   @observable origin
+  @action setLastUpdate = val => (this.lastUpdate = val)
+  @action setLight = val => (this.light = val)
+  @action setOrigin = val => (this.origin = val)
 
-  constructor (state) {
+  constructor(state) {
     // initialize property values
-    this.lastUpdate = state.lastUpdate || Date.now()
-    this.light = state.light || false
-    this.origin = state.origin || 'none'
+    this.setLastUpdate(state.lastUpdate || Date.now())
+    this.setLight(state.light || false)
+    this.setOrigin(state.origin || 'server')
     this.prevOrigin = state.prevOrigin
 
     store = this
@@ -20,7 +25,6 @@ export default class Store {
     intercept(this, 'origin', change => {
       let result = null
       if (this.origin !== change.newValue) {
-        console.log(`origin: ${this.origin} => ${change.newValue}`)
         this.prevOrigin = this.origin
         result = change
       }
@@ -28,17 +32,17 @@ export default class Store {
     })
   }
 
-  @action start = () => {
+  start = () => {
     this.timer = setInterval(() => {
-      this.lastUpdate = Date.now()
-      this.light = true
+      this.setLastUpdate(Date.now())
+      this.setLight(true)
     })
   }
 
   stop = () => clearInterval(this.timer)
 }
 
-export function initStore (state = {}) {
+export function initStore(state = {}) {
   if (store === null) store = new Store(state)
   return store
 }
