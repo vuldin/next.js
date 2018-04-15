@@ -15,6 +15,11 @@ export default function ({ app }, suiteName, render, fetch) {
       expect(html.includes('My component!')).toBeTruthy()
     })
 
+    test('renders with fragment syntax', async () => {
+      const html = await render('/fragment-syntax')
+      expect(html.includes('My component!')).toBeTruthy()
+    })
+
     test('renders a stateful component', async () => {
       const $ = await get$('/stateful')
       const answer = $('#answer')
@@ -96,9 +101,14 @@ export default function ({ app }, suiteName, render, fetch) {
       expect(pre.text()).toMatch(/The default export is not a React Component/)
     })
 
-    test('error', async () => {
-      const $ = await get$('/error')
+    test('error-inside-page', async () => {
+      const $ = await get$('/error-inside-page')
       expect($('pre').text()).toMatch(/This is an expected error/)
+    })
+
+    test('error-in-the-global-scope', async () => {
+      const $ = await get$('/error-in-the-global-scope')
+      expect($('pre').text()).toMatch(/aa is not defined/)
     })
 
     test('asPath', async () => {
@@ -106,19 +116,27 @@ export default function ({ app }, suiteName, render, fetch) {
       expect($('.as-path-content').text()).toBe('/nav/as-path?aa=10')
     })
 
-    test('error 404', async () => {
-      const $ = await get$('/non-existent')
-      expect($('h1').text()).toBe('404')
-      expect($('h2').text()).toBe('This page could not be found.')
-    })
+    describe('404', () => {
+      it('should 404 on not existent page', async () => {
+        const $ = await get$('/non-existent')
+        expect($('h1').text()).toBe('404')
+        expect($('h2').text()).toBe('This page could not be found.')
+      })
 
-    test('error 404 should not have page script', async () => {
-      const $ = await get$('/non-existent')
-      $('script[src]').each((index, element) => {
-        const src = $(element).attr('src')
-        if (src.includes('/non-existent')) {
-          throw new Error('Page includes page script')
-        }
+      it('should 404 for <page>/', async () => {
+        const $ = await get$('/nav/about/')
+        expect($('h1').text()).toBe('404')
+        expect($('h2').text()).toBe('This page could not be found.')
+      })
+
+      it('should should not contain a page script in a 404 page', async () => {
+        const $ = await get$('/non-existent')
+        $('script[src]').each((index, element) => {
+          const src = $(element).attr('src')
+          if (src.includes('/non-existent')) {
+            throw new Error('Page includes page script')
+          }
+        })
       })
     })
 

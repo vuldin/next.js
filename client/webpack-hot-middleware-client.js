@@ -1,4 +1,5 @@
-import webpackHotMiddlewareClient from 'webpack-hot-middleware/client?autoConnect=false'
+import 'event-source-polyfill'
+import webpackHotMiddlewareClient from 'webpack-hot-middleware/client?autoConnect=false&overlay=false&reload=true'
 import Router from '../lib/router'
 
 const {
@@ -9,8 +10,6 @@ const {
 
 export default () => {
   webpackHotMiddlewareClient.setOptionsAndConnect({
-    overlay: false,
-    reload: true,
     path: `${assetPrefix}/_next/webpack-hmr`
   })
 
@@ -28,6 +27,13 @@ export default () => {
         return
       }
 
+      // If the App component changes we have to reload the current route
+      if (route === '/_app') {
+        Router.reload(Router.route)
+        return
+      }
+
+      // Since _document is server only we need to reload the full page when it changes.
       if (route === '/_document') {
         window.location.reload()
         return
@@ -37,6 +43,13 @@ export default () => {
     },
 
     change (route) {
+      // If the App component changes we have to reload the current route
+      if (route === '/_app') {
+        Router.reload(Router.route)
+        return
+      }
+
+      // Since _document is server only we need to reload the full page when it changes.
       if (route === '/_document') {
         window.location.reload()
         return

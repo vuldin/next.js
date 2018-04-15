@@ -1,39 +1,46 @@
+// @flow
 import findUp from 'find-up'
+import uuid from 'uuid'
 
 const cache = new Map()
 
 const defaultConfig = {
   webpack: null,
   webpackDevMiddleware: null,
+  poweredByHeader: true,
   distDir: '.next',
   assetPrefix: '',
   configOrigin: 'default',
-  useFileSystemPublicRoutes: true
+  useFileSystemPublicRoutes: true,
+  generateBuildId: () => uuid.v4(),
+  generateEtags: true,
+  pageExtensions: ['jsx', 'js']
 }
 
-export default function getConfig (dir, customConfig) {
+export default function getConfig (phase: string, dir: string, customConfig?: ?Object) {
   if (!cache.has(dir)) {
-    cache.set(dir, loadConfig(dir, customConfig))
+    cache.set(dir, loadConfig(phase, dir, customConfig))
   }
   return cache.get(dir)
 }
 
-function loadConfig (dir, customConfig) {
+export function loadConfig (phase: string, dir: string, customConfig?: ?Object) {
   if (customConfig && typeof customConfig === 'object') {
     customConfig.configOrigin = 'server'
     return withDefaults(customConfig)
   }
-  const path = findUp.sync('next.config.js', {
+  const path: string = findUp.sync('next.config.js', {
     cwd: dir
   })
 
   let userConfig = {}
 
   if (path && path.length) {
+    // $FlowFixMe
     const userConfigModule = require(path)
     userConfig = userConfigModule.default || userConfigModule
-    if (userConfig.poweredByHeader === true || userConfig.poweredByHeader === false) {
-      console.warn('> the `poweredByHeader` option has been removed https://err.sh/zeit/next.js/powered-by-header-option-removed')
+    if (typeof userConfigModule === 'function') {
+      userConfig = userConfigModule(phase, {defaultConfig})
     }
     userConfig.configOrigin = 'next.config.js'
   }
@@ -41,6 +48,6 @@ function loadConfig (dir, customConfig) {
   return withDefaults(userConfig)
 }
 
-function withDefaults (config) {
+function withDefaults (config: Object) {
   return Object.assign({}, defaultConfig, config)
 }

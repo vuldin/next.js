@@ -6,11 +6,12 @@
 
 ### Using `create-next-app`
 
-Download [`create-next-app`](https://github.com/segmentio/create-next-app) to bootstrap the example:
+Execute [`create-next-app`](https://github.com/segmentio/create-next-app) with [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) or [npx](https://github.com/zkat/npx#readme) to bootstrap the example:
 
-```
-npm i -g create-next-app
-create-next-app --example with-webpack-bundle-analyzer with-webpack-bundle-analyzer-app
+```bash
+npx create-next-app --example with-webpack-bundle-analyzer with-webpack-bundle-analyzer-app
+# or
+yarn create next-app --example with-webpack-bundle-analyzer with-webpack-bundle-analyzer-app
 ```
 
 ### Download manually
@@ -26,6 +27,10 @@ Install it
 
 ```bash
 npm install
+npm run dev
+# or
+yarn
+yarn dev
 ```
 
 ## The idea behind the example
@@ -36,4 +41,6 @@ To analyze your webpack output, invoke the following command:
 
 ```bash
 npm run analyze
+# or
+yarn analyze
 ```

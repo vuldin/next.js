@@ -5,39 +5,40 @@ import walk from 'walk'
 import { extname, resolve, join, dirname, sep } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import getConfig from './config'
+import {PHASE_EXPORT, PAGES_MANIFEST} from '../lib/constants'
 import { renderToHTML } from './render'
 import { getAvailableChunks } from './utils'
-import { printAndExit } from '../lib/utils'
 import { setAssetPrefix } from '../lib/asset'
+import * as envConfig from '../lib/runtime-config'
 
 export default async function (dir, options, configuration) {
   dir = resolve(dir)
-  const config = configuration || getConfig(dir)
-  const nextDir = join(dir, config.distDir)
+  const nextConfig = configuration || getConfig(PHASE_EXPORT, dir)
+  const nextDir = join(dir, nextConfig.distDir)
 
-  log(`  using build directory: ${nextDir}`)
+  log(`> using build directory: ${nextDir}`)
 
   if (!existsSync(nextDir)) {
-    console.error(
-      `Build directory ${nextDir} does not exist. Make sure you run "next build" before running "next start" or "next export".`
-    )
-    process.exit(1)
+    throw new Error(`Build directory ${nextDir} does not exist. Make sure you run "next build" before running "next start" or "next export".`)
   }
 
   const buildId = readFileSync(join(nextDir, 'BUILD_ID'), 'utf8')
-  const buildStats = require(join(nextDir, 'build-stats.json'))
+  const pagesManifest = require(join(nextDir, 'dist', PAGES_MANIFEST))
+
+  const pages = Object.keys(pagesManifest)
+  const defaultPathMap = {}
+
+  for (const page of pages) {
+    if (page === '/_document') {
+      continue
+    }
+    defaultPathMap[page] = { page }
+  }
 
   // Initialize the output directory
   const outDir = options.outdir
   await del(join(outDir, '*'))
-  await mkdirp(join(outDir, '_next', buildStats['app.js'].hash))
   await mkdirp(join(outDir, '_next', buildId))
-
-  // Copy files
-  await cp(
-    join(nextDir, 'app.js'),
-    join(outDir, '_next', buildStats['app.js'].hash, 'app.js')
-  )
 
   // Copy static directory
   if (existsSync(join(dir, 'static'))) {
@@ -72,28 +73,39 @@ export default async function (dir, options, configuration) {
   await copyPages(nextDir, outDir, buildId)
 
   // Get the exportPathMap from the `next.config.js`
-  if (typeof config.exportPathMap !== 'function') {
-    printAndExit(
-      '> Could not find "exportPathMap" function inside "next.config.js"\n' +
-      '> "next export" uses that function to build html pages.'
-    )
+  if (typeof nextConfig.exportPathMap !== 'function') {
+    console.log('> No "exportPathMap" found in "next.config.js". Generating map from "./pages"')
+    nextConfig.exportPathMap = async (defaultMap) => {
+      return defaultMap
+    }
   }
 
-  const exportPathMap = await config.exportPathMap()
+  const exportPathMap = await nextConfig.exportPathMap(defaultPathMap)
   const exportPaths = Object.keys(exportPathMap)
 
   // Start the rendering process
   const renderOpts = {
     dir,
-    buildStats,
+    dist: nextConfig.distDir,
     buildId,
     nextExport: true,
-    assetPrefix: config.assetPrefix.replace(/\/$/, ''),
+    assetPrefix: nextConfig.assetPrefix.replace(/\/$/, ''),
     dev: false,
     staticMarkup: false,
     hotReloader: null,
-    availableChunks: getAvailableChunks(dir, config.distDir)
+    availableChunks: getAvailableChunks(dir, nextConfig.distDir)
   }
+
+  const {serverRuntimeConfig, publicRuntimeConfig} = nextConfig
+
+  if (publicRuntimeConfig) {
+    renderOpts.runtimeConfig = publicRuntimeConfig
+  }
+
+  envConfig.setConfig({
+    serverRuntimeConfig,
+    publicRuntimeConfig
+  })
 
   // set the assetPrefix to use for 'next/asset'
   setAssetPrefix(renderOpts.assetPrefix)
@@ -104,7 +116,7 @@ export default async function (dir, options, configuration) {
   }
 
   for (const path of exportPaths) {
-    log(`  exporting path: ${path}`)
+    log(`> exporting path: ${path}`)
     if (!path.startsWith('/')) {
       throw new Error(`path "${path}" doesn't start with a backslash`)
     }

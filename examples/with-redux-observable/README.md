@@ -4,11 +4,12 @@
 
 ### Using `create-next-app`
 
-Download [`create-next-app`](https://github.com/segmentio/create-next-app) to bootstrap the example:
+Execute [`create-next-app`](https://github.com/segmentio/create-next-app) with [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) or [npx](https://github.com/zkat/npx#readme) to bootstrap the example:
 
-```
-npm i -g create-next-app
-create-next-app --example with-redux-observable with-redux-observable-app
+```bash
+npx create-next-app --example with-redux-observable with-redux-observable-app
+# or
+yarn create next-app --example with-redux-observable with-redux-observable-app
 ```
 
 ### Download manually
@@ -25,6 +26,9 @@ Install it and run:
 ```bash
 npm install
 npm run dev
+# or
+yarn
+yarn dev
 ```
 
 

@@ -3,10 +3,10 @@ import ReactDOM from 'react-dom'
 import HeadManager from './head-manager'
 import { createRouter } from '../lib/router'
 import EventEmitter from '../lib/EventEmitter'
-import App from '../lib/app'
 import { loadGetInitialProps, getURL } from '../lib/utils'
 import PageLoader from '../lib/page-loader'
 import * as asset from '../lib/asset'
+import * as envConfig from '../lib/runtime-config'
 
 // Polyfill Promise globally
 // This is needed because Webpack2's dynamic loading(common chunks) code
@@ -21,11 +21,13 @@ const {
   __NEXT_DATA__: {
     props,
     err,
+    page,
     pathname,
     query,
     buildId,
     chunks,
-    assetPrefix
+    assetPrefix,
+    runtimeConfig
   },
   location
 } = window
@@ -35,6 +37,11 @@ const {
 __webpack_public_path__ = `${assetPrefix}/_next/webpack/` //eslint-disable-line
 // Initialize next/asset with the assetPrefix
 asset.setAssetPrefix(assetPrefix)
+// Initialize next/config with the environment configuration
+envConfig.setConfig({
+  serverRuntimeConfig: {},
+  publicRuntimeConfig: runtimeConfig
+})
 
 const asPath = getURL()
 
@@ -61,6 +68,7 @@ export let router
 export let ErrorComponent
 let ErrorDebugComponent
 let Component
+let App
 let stripAnsi = (s) => s
 
 export const emitter = new EventEmitter()
@@ -74,16 +82,23 @@ export default async ({ ErrorDebugComponent: passedDebugComponent, stripAnsi: pa
   stripAnsi = passedStripAnsi || stripAnsi
   ErrorDebugComponent = passedDebugComponent
   ErrorComponent = await pageLoader.loadPage('/_error')
+  App = await pageLoader.loadPage('/_app')
 
   try {
-    Component = await pageLoader.loadPage(pathname)
+    Component = await pageLoader.loadPage(page)
+
+    if (typeof Component !== 'function') {
+      throw new Error(`The default export is not a React Component in page: "${pathname}"`)
+    }
   } catch (err) {
     console.error(stripAnsi(`${err.message}\n${err.stack}`))
     Component = ErrorComponent
   }
 
   router = createRouter(pathname, query, asPath, {
+    initialProps: props,
     pageLoader,
+    App,
     Component,
     ErrorComponent,
     err
@@ -128,7 +143,7 @@ export async function renderError (error) {
   console.error(stripAnsi(errorMessage))
 
   if (prod) {
-    const initProps = { err: error, pathname, query, asPath }
+    const initProps = {Component: ErrorComponent, router, ctx: {err: error, pathname, query, asPath}}
     const props = await loadGetInitialProps(ErrorComponent, initProps)
     renderReactElement(createElement(ErrorComponent, props), errorContainer)
   } else {
@@ -137,18 +152,19 @@ export async function renderError (error) {
 }
 
 async function doRender ({ Component, props, hash, err, emitter: emitterProp = emitter }) {
+  // Usual getInitialProps fetching is handled in next/router
+  // this is for when ErrorComponent gets replaced by Component by HMR
   if (!props && Component &&
     Component !== ErrorComponent &&
     lastAppProps.Component === ErrorComponent) {
-    // fetch props if ErrorComponent was replaced with a page component by HMR
     const { pathname, query, asPath } = router
-    props = await loadGetInitialProps(Component, { err, pathname, query, asPath })
+    props = await loadGetInitialProps(App, {Component, router, ctx: {err, pathname, query, asPath}})
   }
 
   Component = Component || lastAppProps.Component
   props = props || lastAppProps.props
 
-  const appProps = { Component, props, hash, err, router, headManager }
+  const appProps = { Component, hash, err, router, headManager, ...props }
   // lastAppProps has to be set before ReactDom.render to account for ReactDom throwing an error.
   lastAppProps = appProps
 

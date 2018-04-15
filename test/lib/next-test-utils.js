@@ -3,8 +3,9 @@ import qs from 'querystring'
 import http from 'http'
 import express from 'express'
 import path from 'path'
-import portfinder from 'portfinder'
+import getPort from 'get-port'
 import { spawn } from 'child_process'
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs'
 import fkill from 'fkill'
 
 import server from '../../dist/server/next'
@@ -62,8 +63,7 @@ export function fetchViaHTTP (appPort, pathname, query) {
 }
 
 export function findPort () {
-  portfinder.basePort = 20000 + Math.ceil(Math.random() * 10000)
-  return portfinder.getPortPromise()
+  return getPort()
 }
 
 // Launch the app in dev mode.
@@ -145,4 +145,41 @@ export async function startStaticServer (dir) {
 
   await promiseCall(server, 'listen')
   return server
+}
+
+export async function check (contentFn, regex) {
+  while (true) {
+    try {
+      const newContent = await contentFn()
+      if (regex.test(newContent)) break
+      await waitFor(1000)
+    } catch (ex) {}
+  }
+}
+
+export class File {
+  constructor (path) {
+    this.path = path
+    this.originalContent = existsSync(this.path) ? readFileSync(this.path, 'utf8') : null
+  }
+
+  write (content) {
+    if (!this.originalContent) {
+      this.originalContent = content
+    }
+    writeFileSync(this.path, content, 'utf8')
+  }
+
+  replace (pattern, newValue) {
+    const newContent = this.originalContent.replace(pattern, newValue)
+    this.write(newContent)
+  }
+
+  delete () {
+    unlinkSync(this.path)
+  }
+
+  restore () {
+    this.write(this.originalContent)
+  }
 }

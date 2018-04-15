@@ -5,11 +5,12 @@
 
 ### Using `create-next-app`
 
-Download [`create-next-app`](https://github.com/segmentio/create-next-app) to bootstrap the example:
+Execute [`create-next-app`](https://github.com/segmentio/create-next-app) with [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) or [npx](https://github.com/zkat/npx#readme) to bootstrap the example:
 
-```
-npm i -g create-next-app
-create-next-app --example with-react-intl with-react-intl-app
+```bash
+npx create-next-app --example with-react-intl with-react-intl-app
+# or
+yarn create next-app --example with-react-intl with-react-intl-app
 ```
 
 ### Download manually
@@ -26,6 +27,9 @@ Install it and run:
 ```bash
 npm install
 npm run dev
+# or
+yarn
+yarn dev
 ```
 
 Deploy it to the cloud with [now](https://zeit.co/now) ([download](https://zeit.co/download))
@@ -53,7 +57,7 @@ This app stores translations and default strings in the `lang/` dir. This dir ha
 
 The translated messages files that exist at `lang/*.json` are only used during production, and are automatically provided to the `<IntlProvider>`. During development the `defaultMessage`s defined in the source code are used. To prepare the example app for localization and production run the build script and start the server in production mode:
 
-```
+```bash
 $ npm run build
 $ npm start
 ```
