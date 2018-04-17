@@ -15,7 +15,7 @@ export default class Other extends React.Component {
   render() {
     return (
       <Provider store={this.store}>
-        <Dashboard title="Other Page" linkTo="/" />
+        <Dashboard title="other page" linkTo="/" />
       </Provider>
     )
   }

@@ -15,7 +15,7 @@ export default class Index extends React.Component {
   render() {
     return (
       <Provider store={this.store}>
-        <Dashboard title="Index Page" linkTo="/other" />
+        <Dashboard title="index page" linkTo="/other" />
       </Provider>
     )
   }
